@@ -16,7 +16,7 @@ type RateLimitIntelligenceEngine struct {
 	config         *RateLimitConfig
 	clientTracker  *ClientTracker
 	anomalyDetector *AnomalyDetector
-	circuitBreaker *CircuitBreaker
+	circuitBreaker *RateLimitCircuitBreaker
 	mu            sync.RWMutex
 }
 
@@ -65,7 +65,7 @@ type timeSeriesPoint struct {
 	Value     float64
 }
 
-type CircuitBreaker struct {
+type RateLimitCircuitBreaker struct {
 	state          CircuitState // CLOSED, OPEN, HALF_OPEN
 	failureCount   int
 	lastFailure    time.Time
@@ -108,7 +108,7 @@ func NewRateLimitIntelligenceEngine(config *RateLimitConfig) *RateLimitIntellige
 			windowDuration: 5 * time.Minute,
 			history:        make([]timeSeriesPoint, 0),
 		},
-		circuitBreaker: &CircuitBreaker{
+		circuitBreaker: &RateLimitCircuitBreaker{
 			state:     CircuitClosed,
 			threshold: config.CircuitBreakerThreshold,
 			timeout:   config.CircuitBreakerTimeout,

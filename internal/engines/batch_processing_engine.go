@@ -45,7 +45,7 @@ type BatchStats struct {
 }
 
 // NewBatchProcessingEngine creates a new Batch Processing Engine
-func NewBatchProcessingEngine(config *BatchConfig) *BatchBatchEngine {
+func NewBatchProcessingEngine(config *BatchConfig) *BatchProcessingEngine {
 	if config == nil {
 		config = &BatchConfig{
 			Enabled:        false,
@@ -93,8 +93,7 @@ func (e *BatchProcessingEngine) Process(ctx context.Context, qc *types.QueryCont
 
 	// Check if this is a batch query
 	isBatch := e.isBatchQuery(query)
-	
-	// Add batch hints if applicable
+	_ = isBatch // result currently unused
 	if e.config.AutoBatch && table != "" {
 		if hint, ok := e.config.BatchTableHints[table]; ok {
 			if !strings.Contains(upperQuery, hint) {
@@ -151,8 +150,6 @@ func (e *BatchProcessingEngine) isBatchQuery(query string) bool {
 
 // estimateRows estimates number of rows affected
 func (e *BatchProcessingEngine) estimateRows(query string) int64 {
-	upperQuery := strings.ToUpper(query)
-	
 	// Count VALUES for INSERT
 	re := regexp.MustCompile(`(?i)VALUES\s*\(`)
 	matches := re.FindAllStringIndex(query, -1)
@@ -162,10 +159,10 @@ func (e *BatchProcessingEngine) estimateRows(query string) int64 {
 
 	// For UPDATE/DELETE with LIMIT
 	re = regexp.MustCompile(`(?i)LIMIT\s+(\d+)`)
-	matches = re.FindStringSubmatch(query)
-	if len(matches) > 1 {
+	match := re.FindStringSubmatch(query)
+	if len(match) > 1 {
 		var limit int
-		fmt.Sscanf(matches[1], "%d", &limit)
+		fmt.Sscanf(match[1], "%d", &limit)
 		return int64(limit)
 	}
 

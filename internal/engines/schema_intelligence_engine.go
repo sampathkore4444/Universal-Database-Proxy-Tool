@@ -35,7 +35,7 @@ type SchemaVersion struct {
 	Version     string
 	Timestamp   time.Time
 	Tables      []TableDefinition
-	Changes     []SchemaChangeItem
+	Changes     []SchemaChange
 	MigrationID string
 }
 
