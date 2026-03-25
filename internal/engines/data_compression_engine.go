@@ -1,6 +1,7 @@
 package engines
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/base64"
@@ -163,14 +164,14 @@ func (e *DataCompressionEngine) CompressValue(data string) (string, error) {
 
 // compressGzip compresses using gzip
 func (e *DataCompressionEngine) compressGzip(data []byte) ([]byte, error) {
-	var buf []byte
+	var buf bytes.Buffer
 	gzw := gzip.NewWriter(&buf)
 	_, err := gzw.Write(data)
 	if err != nil {
 		return nil, err
 	}
 	gzw.Close()
-	return buf, nil
+	return buf.Bytes(), nil
 }
 
 // GetCompressionStats returns compression statistics

@@ -2,7 +2,6 @@ package engines
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -138,16 +137,15 @@ func (e *ConnectionPoolOptimizerEngine) Process(ctx context.Context, qc *types.Q
 	e.poolStats.TotalConnections = e.poolStats.ActiveConnections + e.poolStats.IdleConnections
 	
 	// Record connection acquisition time for average calculation
-	if qc.AcquireTime != nil {
-		acquireDuration := time.Since(*qc.AcquireTime)
+	if qc.Response != nil && qc.Response.Duration > 0 {
 		e.poolStats.ConnectionAcquired++
 		if e.poolStats.AvgAcquireTime == 0 {
-			e.poolStats.AvgAcquireTime = acquireDuration
+			e.poolStats.AvgAcquireTime = qc.Response.Duration
 		} else {
-			e.poolStats.AvgAcquireTime = (e.poolStats.AvgAcquireTime*time.Duration(e.poolStats.ConnectionAcquired-1) + acquireDuration) / time.Duration(e.poolStats.ConnectionAcquired)
+			e.poolStats.AvgAcquireTime = (e.poolStats.AvgAcquireTime*time.Duration(e.poolStats.ConnectionAcquired-1) + qc.Response.Duration) / time.Duration(e.poolStats.ConnectionAcquired)
 		}
-		if acquireDuration > e.poolStats.MaxAcquireTime {
-			e.poolStats.MaxAcquireTime = acquireDuration
+		if qc.Response.Duration > e.poolStats.MaxAcquireTime {
+			e.poolStats.MaxAcquireTime = qc.Response.Duration
 		}
 	}
 	e.poolStats.mu.Unlock()
@@ -180,22 +178,21 @@ func (e *ConnectionPoolOptimizerEngine) ProcessResponse(ctx context.Context, qc 
 	e.poolStats.ConnectionReleased++
 
 	// Track waiting requests (if any)
-	if qc.WaitTime > 0 {
+	if qc.Response != nil && qc.Response.Duration > 5*time.Second {
 		// Could indicate pool exhaustion
-		if qc.WaitTime > 5*time.Second {
-			e.poolStats.ConnectionTimeout++
-		}
+		e.poolStats.ConnectionTimeout++
 	}
-	e.poolStats.mu.Unlock()
 
-	// Update connection info if tracked
-	if qc.ConnectionID != "" {
+e.poolStats.mu.Unlock()
+
+	// Update connection info if tracked (using ClientAddr as proxy)
+	if qc.ClientAddr != "" {
 		e.connectionTracker.mu.Lock()
-		if conn, exists := e.connectionTracker.connections[qc.ConnectionID]; exists {
+		if conn, exists := e.connectionTracker.connections[qc.ClientAddr]; exists {
 			conn.LastUsedAt = time.Now()
 			conn.QueryCount++
-			if qc.Duration > 0 {
-				conn.LatencySum += qc.Duration
+			if qc.Response != nil {
+				conn.LatencySum += qc.Response.Duration
 			}
 		}
 		e.connectionTracker.mu.Unlock()

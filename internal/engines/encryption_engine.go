@@ -182,7 +182,7 @@ func (e *EncryptionEngine) findApplicableRules(query string) []*EncryptionRule {
 	
 	upperQuery := strings.ToUpper(query)
 	
-	for key, rule := range e.columnRules {
+	for _, rule := range e.columnRules {
 		tablePattern := fmt.Sprintf("(?i)%s", rule.Table)
 		columnPattern := fmt.Sprintf("(?i)%s\\s+", rule.Column)
 		
