@@ -208,8 +208,6 @@ func (e *CDCEngine) isOperationSupported(operation string) bool {
 
 // extractTable extracts table name from query
 func (e *CDCEngine) extractTable(query string) string {
-	upper := strings.ToUpper(query)
-
 	// Extract FROM clause
 	re := regexp.MustCompile(`(?i)FROM\s+(\w+)`)
 	matches := re.FindStringSubmatch(query)
