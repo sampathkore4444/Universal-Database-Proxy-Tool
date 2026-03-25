@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { 
   AppBar, 
@@ -16,7 +16,8 @@ import {
   CardContent,
   Button,
   Switch,
-  Chip
+  Chip,
+  CircularProgress
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -24,9 +25,8 @@ import {
   Psychology as EnginesIcon,
   Timeline as StatsIcon,
   Settings as SettingsIcon,
-  PlayArrow as StartIcon,
-  Stop as StopIcon
 } from '@mui/icons-material';
+import { engineApi, databaseApi, statsApi, healthApi } from './api/udbproxy';
 
 // Engine types
 interface Engine {
@@ -50,36 +50,31 @@ interface Database {
   status: string;
 }
 
-// Sample data
-const engines: Engine[] = [
-  { id: '1', name: 'Query Rewrite', enabled: true, description: 'Auto-rewrite queries for better performance', stats: { processed: 1250, avgLatency: 5 } },
-  { id: '2', name: 'Federation', enabled: true, description: 'Cross-database query routing', stats: { processed: 850, avgLatency: 12 } },
-  { id: '3', name: 'Encryption', enabled: true, description: 'Column-level encryption', stats: { processed: 320, avgLatency: 8 } },
-  { id: '4', name: 'CDC', enabled: true, description: 'Change Data Capture', stats: { processed: 640, avgLatency: 3 } },
-  { id: '5', name: 'Time-Series', enabled: false, description: 'Time-series data handling' },
-  { id: '6', name: 'Graph', enabled: false, description: 'Relationship traversal queries' },
-  { id: '7', name: 'Retry Intelligence', enabled: true, description: 'Smart retry logic', stats: { processed: 45, avgLatency: 25 } },
-  { id: '8', name: 'Hotspot Detection', enabled: true, description: 'Identify hot data', stats: { processed: 980, avgLatency: 2 } },
-  { id: '9', name: 'Query Cost Estimator', enabled: true, description: 'Predict query cost', stats: { processed: 1100, avgLatency: 1 } },
-  { id: '10', name: 'Shadow Database', enabled: false, description: 'Mirror queries to QA' },
-  { id: '11', name: 'Data Validation', enabled: false, description: 'Business rule validation' },
-  { id: '12', name: 'Query Translation', enabled: false, description: 'Cross-dialect conversion' },
-  { id: '13', name: 'Failover', enabled: true, description: 'Automatic database failover', stats: { processed: 12, avgLatency: 0 } },
-  { id: '14', name: 'Query Versioning', enabled: false, description: 'Track query changes' },
-  { id: '15', name: 'Batch Processing', enabled: true, description: 'Optimize bulk operations', stats: { processed: 180, avgLatency: 15 } },
-  { id: '16', name: 'Data Compression', enabled: false, description: 'Transparent compression' },
-  { id: '17', name: 'Load Balancer', enabled: true, description: 'Intelligent routing', stats: { processed: 2100, avgLatency: 1 } },
-  { id: '18', name: 'Query History', enabled: true, description: 'Long-term storage', stats: { processed: 2500, avgLatency: 2 } },
-];
-
-const databases: Database[] = [
-  { id: '1', name: 'primary', type: 'MySQL', host: 'localhost', port: 3306, status: 'active' },
-  { id: '2', name: 'replica1', type: 'MySQL', host: 'localhost', port: 3307, status: 'active' },
-  { id: '3', name: 'analytics', type: 'PostgreSQL', host: 'localhost', port: 5432, status: 'active' },
-  { id: '4', name: 'cache', type: 'Redis', host: 'localhost', port: 6379, status: 'active' },
-];
+// Stats type
+interface Stats {
+  totalQueries: number;
+  activeQueries: number;
+  blockedQueries: number;
+  avgLatency: number;
+  p99Latency: number;
+  activeConnections: number;
+  pooledConnections: number;
+}
 
 function Dashboard() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    statsApi.get().then(data => {
+      setStats(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return <CircularProgress />;
+  if (!stats) return <Typography>No stats available</Typography>;
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>Dashboard Overview</Typography>
@@ -88,23 +83,23 @@ function Dashboard() {
           <Card>
             <CardContent>
               <Typography color="textSecondary">Total Queries</Typography>
-              <Typography variant="h3">10,245</Typography>
+              <Typography variant="h3">{stats.totalQueries.toLocaleString()}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={3}>
           <Card>
             <CardContent>
-              <Typography color="textSecondary">Active Engines</Typography>
-              <Typography variant="h3">12</Typography>
+              <Typography color="textSecondary">Active Queries</Typography>
+              <Typography variant="h3">{stats.activeQueries}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={3}>
           <Card>
             <CardContent>
-              <Typography color="textSecondary">Databases</Typography>
-              <Typography variant="h3">4</Typography>
+              <Typography color="textSecondary">Blocked Queries</Typography>
+              <Typography variant="h3">{stats.blockedQueries}</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -112,7 +107,7 @@ function Dashboard() {
           <Card>
             <CardContent>
               <Typography color="textSecondary">Avg Latency</Typography>
-              <Typography variant="h3">5ms</Typography>
+              <Typography variant="h3">{stats.avgLatency}ms</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -122,9 +117,24 @@ function Dashboard() {
 }
 
 function Engines() {
+  const [engines, setEngines] = useState<Engine[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    engineApi.list().then(data => {
+      setEngines(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return <CircularProgress />;
+  if (engines.length === 0) return <Typography>No engines available</Typography>;
+
+  const enabledCount = engines.filter(e => e.enabled).length;
+
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>Smart Engines (31 Total)</Typography>
+      <Typography variant="h4" gutterBottom>Smart Engines ({enabledCount}/{engines.length} Active)</Typography>
       <Grid container spacing={2}>
         {engines.map((engine) => (
           <Grid item xs={12} md={6} key={engine.id}>
@@ -153,6 +163,19 @@ function Engines() {
 }
 
 function Databases() {
+  const [databases, setDatabases] = useState<Database[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    databaseApi.list().then(data => {
+      setDatabases(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return <CircularProgress />;
+  if (databases.length === 0) return <Typography>No databases configured</Typography>;
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>Database Configuration</Typography>
@@ -187,17 +210,47 @@ function Databases() {
 }
 
 function Stats() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    statsApi.get().then(data => {
+      setStats(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return <CircularProgress />;
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>Statistics</Typography>
-      <Card>
-        <CardContent>
-          <Typography variant="body1">Query Performance Metrics</Typography>
-          <Typography variant="body2" color="textSecondary">
-            Charts and analytics will be displayed here using Recharts
-          </Typography>
-        </CardContent>
-      </Card>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">P99 Latency</Typography>
+              <Typography variant="h4">{stats?.p99Latency || 0}ms</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Active Connections</Typography>
+              <Typography variant="h4">{stats?.activeConnections || 0}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Pooled Connections</Typography>
+              <Typography variant="h4">{stats?.pooledConnections || 0}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </Box>
   );
 }
