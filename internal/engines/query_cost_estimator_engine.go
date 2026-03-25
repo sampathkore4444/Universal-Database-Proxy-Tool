@@ -190,7 +190,10 @@ func (e *QueryCostEstimatorEngine) estimateCost(query string) *QueryCost {
 	matches := limitMatch.FindStringSubmatch(query)
 	if len(matches) > 1 {
 		cost.EstimatedRows = 0
-		_ = fmt.Sscanf(matches[1], "%d", &cost.EstimatedRows)
+	var limitVal int64
+	if _, err := fmt.Sscanf(matches[1], "%d", &limitVal); err == nil {
+		cost.EstimatedRows = limitVal
+	}
 	} else {
 		cost.EstimatedRows = 10000 // default
 	}

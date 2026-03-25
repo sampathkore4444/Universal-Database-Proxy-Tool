@@ -246,8 +246,8 @@ func (e *RateLimitIntelligenceEngine) ProcessResponse(ctx context.Context, qc *t
 		return types.EngineResult{Continue: true}
 	}
 
-	// Track successful responses
-	if qc.Error == nil {
+	// Track successful responses (check Response.Error)
+	if qc.Response == nil || qc.Response.Error == nil {
 		e.circuitBreaker.mu.Lock()
 		if e.circuitBreaker.state == CircuitHalfOpen {
 			// Success in half-open, close the circuit

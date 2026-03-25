@@ -124,7 +124,7 @@ func NewDataLineageEngine(config *LineageConfig) *DataLineageEngine {
 		BaseEngine:     BaseEngine{name: "data_lineage"},
 		config:         config,
 		lineageGraph:   &LineageGraph{nodes: make(map[string]*TableNode), edges: make(map[string][]string)},
-		tableAccessLog: &AccessLog{maxSize: 10000},
+		tableAccessLog: &TableAccessLog{maxSize: 10000},
 		queryFlows:    make([]DataFlow, 0),
 		impactAnalysis: make(map[string]*ImpactResult),
 	}
@@ -132,7 +132,7 @@ func NewDataLineageEngine(config *LineageConfig) *DataLineageEngine {
 	// Start cleanup loop
 	go engine.cleanupLoop()
 
-	return config
+	return engine
 }
 
 // Process handles data lineage tracking
@@ -141,12 +141,11 @@ func (e *DataLineageEngine) Process(ctx context.Context, qc *types.QueryContext)
 		return types.EngineResult{Continue: true}
 	}
 
-	query := strings.TrimSpace(qc.Query)
+	query := strings.TrimSpace(qc.RawQuery)
 	if query == "" {
 		return types.EngineResult{Continue: true}
 	}
 
-	upper := strings.ToUpper(query)
 	tables := e.extractTables(query)
 	isWrite := e.isWriteQuery(query)
 
@@ -163,12 +162,12 @@ func (e *DataLineageEngine) Process(ctx context.Context, qc *types.QueryContext)
 		e.tableAccessLog.mu.Lock()
 		e.tableAccessLog.entries = append(e.tableAccessLog.entries, AccessEntry{
 			Timestamp:   time.Now(),
-			QueryID:     qc.QueryID,
+			QueryID:     qc.ID,
 			Query:       query,
 			TableName:   table,
 			AccessType:  accessType,
 			Columns:     columns,
-			ClientID:    qc.ClientInfo.ClientID,
+			ClientID:    qc.User,
 			Database:    qc.Database,
 		})
 		// Keep bounded
@@ -362,8 +361,8 @@ func (e *DataLineageEngine) createDataFlow(qc *types.QueryContext, sourceTable s
 		Timestamp:   time.Now(),
 		SourceTable: sourceTable,
 		TargetTable: "",
-		Query:       qc.Query,
-		QueryType:   e.detectQueryType(qc.Query),
+		Query:       qc.RawQuery,
+		QueryType:   e.detectQueryType(qc.RawQuery),
 		Columns:     columns,
 		IsDirect:   true,
 	}

@@ -241,9 +241,9 @@ func (e *MultiTenantIsolationEngine) extractTenantID(qc *types.QueryContext) str
 		}
 	}
 
-	// Try from client info
-	if qc.ClientInfo != nil && qc.ClientInfo.TenantID != "" {
-		return qc.ClientInfo.TenantID
+	// Try from user (which may contain tenant info)
+	if qc.User != "" {
+		return qc.User
 	}
 
 	// Fallback to default tenant
@@ -317,9 +317,15 @@ func (e *MultiTenantIsolationEngine) checkQuota(tenantID string, qc *types.Query
 		}
 	}
 
-	// Check row limit
-	if e.config.RowLimitEnabled && qc.ExpectedRows > 0 {
-		if quota.DailyRowLimit > 0 && quota.CurrentRows+int64(qc.ExpectedRows) > quota.DailyRowLimit {
+	// Check row limit (use metadata if available)
+	expectedRows := int64(0)
+	if e.config.RowLimitEnabled {
+		if rows, ok := qc.Metadata["expected_rows"]; ok {
+			if er, ok := rows.(int64); ok {
+				expectedRows = er
+			}
+		}
+		if expectedRows > 0 && quota.DailyRowLimit > 0 && quota.CurrentRows+expectedRows > quota.DailyRowLimit {
 			return QuotaCheckResult{
 				Allowed:   false,
 				QuotaType: "daily_rows",
@@ -338,10 +344,10 @@ func (e *MultiTenantIsolationEngine) validateAccessPolicy(qc *types.QueryContext
 	policy.mu.Lock()
 	defer policy.mu.Unlock()
 
-	// Check command type
+	// Check command type (use Operation field)
 	commandAllowed := false
 	for _, cmd := range policy.AllowedCommands {
-		if qc.QueryType == cmd {
+		if string(qc.Operation) == cmd {
 			commandAllowed = true
 			break
 		}
@@ -352,7 +358,7 @@ func (e *MultiTenantIsolationEngine) validateAccessPolicy(qc *types.QueryContext
 
 	// Check blocked tables
 	for _, blocked := range policy.BlockedTables {
-		if containsString(qc.Query, blocked) {
+		if containsString(qc.RawQuery, blocked) {
 			return false
 		}
 	}
@@ -360,8 +366,8 @@ func (e *MultiTenantIsolationEngine) validateAccessPolicy(qc *types.QueryContext
 	// Check allowed tables (if specified)
 	if len(policy.AllowedTables) > 0 {
 		allowed := false
-		for _, allowed := range policy.AllowedTables {
-			if containsString(qc.Query, allowed) {
+		for _, table := range policy.AllowedTables {
+			if containsString(qc.RawQuery, table) {
 				allowed = true
 				break
 			}
@@ -391,9 +397,9 @@ func (e *MultiTenantIsolationEngine) applyRowFilters(qc *types.QueryContext, ten
 
 	// Add WHERE clause filters to query
 	for _, filter := range policy.RowFilters {
-		if containsString(qc.Query, filter.Table) && !containsString(qc.Query, filter.SQL) {
+		if containsString(qc.RawQuery, filter.Table) && !containsString(qc.RawQuery, filter.SQL) {
 			// Would append filter.SQL to WHERE clause
-			qc.Query = qc.Query + " /* filtered by tenant policy */"
+			qc.RawQuery = qc.RawQuery + " /* filtered by tenant policy */"
 		}
 	}
 }
@@ -427,9 +433,16 @@ func (e *MultiTenantIsolationEngine) trackUsage(tenantID string, qc *types.Query
 	}
 	usage.QueryTimestamps = newTimestamps
 
-	if qc.ExpectedRows > 0 {
-		usage.DailyRows += int64(qc.ExpectedRows)
-		usage.MonthlyRows += int64(qc.ExpectedRows)
+	// Get expected rows from metadata
+	expectedRows := int64(0)
+	if rows, ok := qc.Metadata["expected_rows"]; ok {
+		if er, ok := rows.(int64); ok {
+			expectedRows = er
+		}
+	}
+	if expectedRows > 0 {
+		usage.DailyRows += expectedRows
+		usage.MonthlyRows += expectedRows
 	}
 }
 
@@ -464,7 +477,7 @@ func (e *MultiTenantIsolationEngine) quotaResetLoop() {
 		now := time.Now()
 
 		e.mu.Lock()
-		for tenantID, quota := range e.quotas {
+		for _, quota := range e.quotas {
 			quota.mu.Lock()
 
 			// Reset daily quotas

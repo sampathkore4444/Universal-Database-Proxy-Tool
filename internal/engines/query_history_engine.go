@@ -185,11 +185,6 @@ func (e *QueryHistoryEngine) GetTopQueries(limit int) []QueryFrequency {
 		frequency[record.Query]++
 	}
 
-	type QueryFrequency struct {
-		Query string
-		Count int
-	}
-
 	results := make([]QueryFrequency, 0, limit)
 	for query, count := range frequency {
 		results = append(results, QueryFrequency{Query: query, Count: count})

@@ -107,7 +107,7 @@ func (e *QuerySandboxEngine) Process(ctx context.Context, qc *types.QueryContext
 		return types.EngineResult{Continue: true}
 	}
 
-	query := strings.TrimSpace(qc.Query)
+	query := strings.TrimSpace(qc.RawQuery)
 	if query == "" {
 		return types.EngineResult{Continue: true}
 	}
@@ -205,7 +205,7 @@ func (e *QuerySandboxEngine) ProcessResponse(ctx context.Context, qc *types.Quer
 	}
 
 	session.Status = SandboxExecuted
-	session.AffectedRows = qc.RowsAffected
+	session.AffectedRows = int(qc.Response.RowsAffected)
 
 	// Store preview data if this was a preview
 	if qc.Metadata != nil {

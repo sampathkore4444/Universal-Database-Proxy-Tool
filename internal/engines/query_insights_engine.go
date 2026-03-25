@@ -115,7 +115,7 @@ func (e *QueryInsightsEngine) Process(ctx context.Context, qc *types.QueryContex
 		return types.EngineResult{Continue: true}
 	}
 
-	query := strings.TrimSpace(qc.Query)
+	query := strings.TrimSpace(qc.RawQuery)
 	if query == "" {
 		return types.EngineResult{Continue: true}
 	}
@@ -138,23 +138,31 @@ func (e *QueryInsightsEngine) Process(ctx context.Context, qc *types.QueryContex
 		pattern.Count++
 		pattern.LastSeen = time.Now()
 		// Update duration statistics
-		pattern.TotalDuration += qc.Duration
-		pattern.AvgDuration = pattern.TotalDuration / time.Duration(pattern.Count)
-		if qc.Duration > pattern.MaxDuration {
-			pattern.MaxDuration = qc.Duration
+		var duration time.Duration
+		if qc.Response != nil {
+			duration = qc.Response.Duration
 		}
-		if qc.Duration < pattern.MinDuration || pattern.MinDuration == 0 {
-			pattern.MinDuration = qc.Duration
+		pattern.TotalDuration += duration
+		pattern.AvgDuration = pattern.TotalDuration / time.Duration(pattern.Count)
+		if duration > pattern.MaxDuration {
+			pattern.MaxDuration = duration
+		}
+		if duration < pattern.MinDuration || pattern.MinDuration == 0 {
+			pattern.MinDuration = duration
 		}
 	} else {
+		var duration time.Duration
+		if qc.Response != nil {
+			duration = qc.Response.Duration
+		}
 		e.queryPatterns.patterns[hash] = &QueryPattern{
 			QueryTemplate: template,
 			Hash:          hash,
 			Count:         1,
-			AvgDuration:   qc.Duration,
-			MinDuration:   qc.Duration,
-			MaxDuration:   qc.Duration,
-			TotalDuration: qc.Duration,
+			AvgDuration:   duration,
+			MinDuration:   duration,
+			MaxDuration:   duration,
+			TotalDuration: duration,
 			LastSeen:      time.Now(),
 			FirstSeen:     time.Now(),
 			TableAccess:   tables,
@@ -165,8 +173,12 @@ func (e *QueryInsightsEngine) Process(ctx context.Context, qc *types.QueryContex
 	}
 
 	// Check for slow query
-	if qc.Duration > e.config.SlowQueryThreshold {
-		e.recordSlowQuery(query, qc.Duration, tables, complexity)
+	var duration time.Duration
+	if qc.Response != nil {
+		duration = qc.Response.Duration
+	}
+	if duration > e.config.SlowQueryThreshold {
+		e.recordSlowQuery(query, duration, tables, complexity)
 	}
 
 	// Generate index recommendations
@@ -197,7 +209,7 @@ func (e *QueryInsightsEngine) ProcessResponse(ctx context.Context, qc *types.Que
 	}
 
 	e.mu.RLock()
-	hash := e.hashQuery(e.normalizeQuery(qc.Query))
+	hash := e.hashQuery(e.normalizeQuery(qc.RawQuery))
 	if pattern, exists := e.queryPatterns.patterns[hash]; exists {
 		qc.Metadata["pattern_count"] = pattern.Count
 		qc.Metadata["pattern_avg_duration"] = pattern.AvgDuration.String()
@@ -386,7 +398,6 @@ func (e *QueryInsightsEngine) generateIndexRecommendations(tables []string, quer
 		for _, match := range matches {
 			if len(match) > 1 {
 				col := match[1]
-				key := fmt.Sprintf("%s.%s", table, col)
 				
 				rec := IndexRecommendation{
 					Table:      table,

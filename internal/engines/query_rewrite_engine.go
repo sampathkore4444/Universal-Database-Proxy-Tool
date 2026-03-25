@@ -122,7 +122,7 @@ func (e *QueryRewriteEngine) Process(ctx context.Context, qc *types.QueryContext
 		return types.EngineResult{Continue: true}
 	}
 
-	query := strings.TrimSpace(qc.Query)
+	query := strings.TrimSpace(qc.RawQuery)
 	if query == "" {
 		return types.EngineResult{Continue: true}
 	}
@@ -207,7 +207,7 @@ func (e *QueryRewriteEngine) Process(ctx context.Context, qc *types.QueryContext
 	}
 
 	if rewritten {
-		qc.Query = query
+		qc.RawQuery = query
 		if qc.Metadata == nil {
 			qc.Metadata = make(map[string]interface{})
 		}
@@ -222,10 +222,11 @@ func (e *QueryRewriteEngine) Process(ctx context.Context, qc *types.QueryContext
 func (e *QueryRewriteEngine) ProcessResponse(ctx context.Context, qc *types.QueryContext) types.EngineResult {
 	if qc.Metadata != nil {
 		if rewritten, ok := qc.Metadata["query_rewritten"].(bool); ok && rewritten {
-			if qc.Duration > 0 {
+			if qc.Response != nil && qc.Response.Duration > 0 {
+				duration := qc.Response.Duration
 				e.stats.mu.Lock()
 				// Update average improvement (simplified)
-				e.stats.AvgImprovementMs = (e.stats.AvgImprovementMs*float64(e.stats.TotalRewrites-1) + float64(qc.Duration.Milliseconds())) / float64(e.stats.TotalRewrites)
+				e.stats.AvgImprovementMs = (e.stats.AvgImprovementMs*float64(e.stats.TotalRewrites-1) + float64(duration.Milliseconds())) / float64(e.stats.TotalRewrites)
 				e.stats.mu.Unlock()
 			}
 		}
@@ -267,8 +268,6 @@ func (e *QueryRewriteEngine) subqueryToJoin(query string) string {
 // orToIn converts OR conditions to IN
 func (e *QueryRewriteEngine) orToIn(query string) string {
 	// Match pattern: col = val OR col = val OR col = val
-	re := regexp.MustCompile(`(?i)(\w+)\s*=\s*['"]?([^\s'"]+)['"]?\s+OR\s+\1\s*=\s*['"]?([^\s'"]+)['"]?`)
-
 	orCounts := strings.Count(query, " OR ")
 	if orCounts > 0 {
 		// Collect all values for the same column
@@ -335,7 +334,6 @@ func (e *QueryRewriteEngine) optimizeDistinct(query string) string {
 	matches := re.FindStringSubmatch(query)
 	if len(matches) > 2 {
 		col := matches[1]
-		table := matches[2]
 		
 		// Check if column is likely a primary key (simplified check)
 		if strings.HasSuffix(col, "_id") || strings.HasPrefix(col, "id_") {
