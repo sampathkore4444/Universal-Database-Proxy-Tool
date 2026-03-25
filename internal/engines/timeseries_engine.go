@@ -206,7 +206,7 @@ func (e *TimeSeriesEngine) addTimeAggregation(query, interval string) string {
 	re := regexp.MustCompile(`(?i)FROM\s+(\w+)`)
 	matches := re.FindStringSubmatch(query)
 	if len(matches) > 1 {
-		table := matches[1]
+		_ = matches[1] // table name not currently used but reserved for future
 		
 		// Add GROUP BY with time bucket
 		if !strings.Contains(strings.ToUpper(query), "WHERE") {

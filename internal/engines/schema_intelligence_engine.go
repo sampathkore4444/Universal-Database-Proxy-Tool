@@ -149,7 +149,7 @@ func (e *SchemaIntelligenceEngine) Process(ctx context.Context, qc *types.QueryC
 		return types.EngineResult{Continue: true}
 	}
 
-	query := strings.TrimSpace(qc.Query)
+	query := strings.TrimSpace(qc.RawQuery)
 	if query == "" {
 		return types.EngineResult{Continue: true}
 	}
@@ -445,7 +445,7 @@ func (e *SchemaIntelligenceEngine) CheckQueryCompatibility(query string) Compati
 			parts := strings.Split(match[1], ".")
 			if len(parts) == 2 {
 				tableName := parts[0]
-				colName := parts[1]
+				_ = parts[1] // column name not currently used but reserved for future checks
 
 				// Check if we have metadata for this table
 				if metadata, exists := e.tableMetadata[tableName]; exists && metadata.IsDeprecated {

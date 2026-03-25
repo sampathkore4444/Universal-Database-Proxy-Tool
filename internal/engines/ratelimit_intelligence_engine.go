@@ -273,7 +273,7 @@ func (e *RateLimitIntelligenceEngine) ProcessResponse(ctx context.Context, qc *t
 		Timestamp: time.Now(),
 		Value:     1.0,
 	})
-	e.pruneHistory()
+	e.anomalyDetector.pruneHistory()
 	e.anomalyDetector.mu.Unlock()
 
 	return types.EngineResult{Continue: true}
@@ -281,12 +281,13 @@ func (e *RateLimitIntelligenceEngine) ProcessResponse(ctx context.Context, qc *t
 
 // getClientID extracts client identifier from query context
 func (e *RateLimitIntelligenceEngine) getClientID(qc *types.QueryContext) string {
-	if qc.ClientInfo != nil && qc.ClientInfo.ClientID != "" {
-		return qc.ClientInfo.ClientID
+	// Use User field as client identifier
+	if qc.User != "" {
+		return qc.User
 	}
-	// Fallback to IP
-	if qc.ClientInfo != nil && qc.ClientInfo.RemoteAddr != "" {
-		return qc.ClientInfo.RemoteAddr
+	// Fallback to ClientAddr
+	if qc.ClientAddr != "" {
+		return qc.ClientAddr
 	}
 	return "unknown"
 }
