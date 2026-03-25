@@ -1,0 +1,21 @@
+# ------------------
+# React / Node
+# ------------------
+frontend/node_modules/
+frontend App/build/
+frontend App/.env
+
+# ------------------
+# Python / FastAPI
+# ------------------
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/.env
+
+# ------------------
+# General
+# ------------------
+.env
+.DS_Store
+*.log
