@@ -3,6 +3,7 @@ package engines
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -248,5 +249,3 @@ type TranslationStatsResponse struct {
 	AvgLatencyMs         float64 `json:"avg_latency_ms"`
 }
 
-// Import regexp
-import "regexp"

@@ -22,12 +22,12 @@ type HotspotDetectionEngine struct {
 }
 
 type AccessLog struct {
-	entries  []AccessEntry
+	entries  []HotspotAccessEntry
 	maxSize  int
 	mu       sync.RWMutex
 }
 
-type AccessEntry struct {
+type HotspotAccessEntry struct {
 	Timestamp   time.Time
 	Table       string
 	QueryHash   string
@@ -119,7 +119,7 @@ func (e *HotspotDetectionEngine) Process(ctx context.Context, qc *types.QueryCon
 	}
 
 	// Log access
-	entry := AccessEntry{
+	entry := HotspotAccessEntry{
 		Timestamp:   time.Now(),
 		Table:       table,
 		QueryHash:   fmt.Sprintf("%x", hashString(query)),

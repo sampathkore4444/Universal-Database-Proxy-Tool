@@ -2,6 +2,7 @@ package engines
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strings"
 	"sync"
@@ -191,5 +192,3 @@ type BatchStatsResponse struct {
 	AvgBatchSize   float64 `json:"avg_batch_size"`
 }
 
-// Import fmt
-import "fmt"
