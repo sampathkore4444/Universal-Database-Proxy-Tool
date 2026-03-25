@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: udbproxy-config
+  labels:
+    app: udbproxy
+data:
+  config.yaml: |
+    server:
+      host: "0.0.0.0"
+      port: 8080
+    databases:
+      - name: primary
+        type: mysql
+        host: mysql-primary
+        port: 3306
+        database: appdb
+        username: appuser
+        password: ${MYSQL_PASSWORD}
+      - name: replica
+        type: mysql
+        host: mysql-replica
+        port: 3306
+        database: appdb
+        username: appuser
+        password: ${MYSQL_PASSWORD}
+    routing_rules:
+      - name: default
+        match_pattern: ""
+        database: primary
+    security_rules:
+      - name: block-drop
+        match_pattern: "DROP\\s+TABLE"
+        action: deny
+    cache:
+      enabled: true
+      ttl: 300
+      max_size: 1000
+    observability:
+      enabled: true
+      log_queries: false
+      slow_query_threshold: 1s
+    metrics:
+      enabled: true
+      port: 9090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: udbproxy
+  labels:
+    app: udbproxy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: udbproxy
+  template:
+    metadata:
+      labels:
+        app: udbproxy
+    spec:
+      containers:
+        - name: udbproxy
+          image: udbproxy:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3306
+              name: mysql
+            - containerPort: 5432
+              name: postgres
+            - containerPort: 6379
+              name: redis
+            - containerPort: 27017
+              name: mongodb
+            - containerPort: 8080
+              name: http
+            - containerPort: 9090
+              name: metrics
+          env:
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: mysql-password
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: udbproxy-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: udbproxy
+  labels:
+    app: udbproxy
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3306
+      targetPort: 3306
+      protocol: TCP
+      name: mysql
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+    - port: 6379
+      targetPort: 6379
+      protocol: TCP
+      name: redis
+    - port: 27017
+      targetPort: 27017
+      protocol: TCP
+      name: mongodb
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+    - port: 9090
+      targetPort: 9090
+      protocol: TCP
+      name: metrics
+  selector:
+    app: udbproxy
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+type: Opaque
+stringData:
+  mysql-password: changeme

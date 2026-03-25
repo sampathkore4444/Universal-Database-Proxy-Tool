@@ -1,0 +1,113 @@
+server:
+  listen_address: "0.0.0.0"
+  listen_port: 5432
+  read_timeout: 30
+  write_timeout: 30
+  idle_timeout: 120
+  max_clients: 1000
+
+databases:
+  - name: primary
+    type: postgres
+    host: localhost
+    port: 5432
+    database: myapp
+    username: postgres
+    password: ${DB_PASSWORD}
+    ssl_mode: false
+    max_connections: 25
+    max_idle_time: 300
+    max_lifetime: 3600
+    is_read_replica: false
+    tags:
+      env: production
+
+  - name: replica
+    type: postgres
+    host: localhost
+    port: 5433
+    database: myapp
+    username: postgres
+    password: ${DB_PASSWORD}
+    ssl_mode: false
+    max_connections: 25
+    max_idle_time: 300
+    is_read_replica: true
+    tags:
+      env: production
+
+  - name: mysql_primary
+    type: mysql
+    host: localhost
+    port: 3306
+    database: myapp
+    username: root
+    password: ${MYSQL_PASSWORD}
+    ssl_mode: false
+    max_connections: 25
+    max_idle_time: 300
+    is_read_replica: false
+    tags:
+      env: production
+
+routing_rules:
+  - name: default
+    match_pattern: ""
+    database: primary
+    priority: 100
+
+  - name: select_reads
+    match_pattern: "^SELECT"
+    database: replica
+    is_read_replica: true
+    priority: 50
+
+security_rules:
+  - name: block_destructive
+    match_pattern: "(DROP|DELETE|TRUNCATE)"
+    action: DENY
+
+  - name: log_sensitive
+    match_pattern: "(password|credit_card|ssn)"
+    action: LOG
+
+  - name: mask_sensitive_data
+    match_pattern: "(email|phone|address)"
+    action: MASK
+    mask_fields:
+      - email
+      - phone
+      - address
+    log_only: true
+
+cache:
+  enabled: true
+  backend: memory
+  ttl: 300
+  max_size: 10000
+  key_prefix: "udbproxy"
+
+observability:
+  enabled: true
+  log_queries: true
+  log_responses: false
+  slow_query_threshold: 1000
+  metrics_enabled: true
+  tracing_enabled: false
+  metrics_port: 9090
+
+logging:
+  level: info
+  format: json
+  output: stdout
+
+metrics:
+  enabled: true
+  port: 8080
+  path: "/metrics"
+
+tls:
+  enabled: false
+  cert_file: "/etc/udbproxy/certs/server.crt"
+  key_file: "/etc/udbproxy/certs/server.key"
+  client_auth: "none"
