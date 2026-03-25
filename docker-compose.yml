@@ -1,0 +1,159 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Primary Database
+  postgres-primary:
+    image: postgres:15-alpine
+    container_name: udbproxy-postgres-primary
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: myapp
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-primary-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - udbproxy-network
+
+  # PostgreSQL Read Replica
+  postgres-replica:
+    image: postgres:15-alpine
+    container_name: udbproxy-postgres-replica
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: myapp
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-replica-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - udbproxy-network
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: udbproxy-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: myapp
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - udbproxy-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: udbproxy-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - udbproxy-network
+
+  # MongoDB
+  mongodb:
+    image: mongo:7
+    container_name: udbproxy-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - udbproxy-network
+
+  # Backend (Go Database Proxy)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: udbproxy-backend
+    ports:
+      - "5432:5432"
+      - "3306:3306"
+      - "6379:6379"
+      - "27017:27017"
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      - UDBP_CONFIG_PATH=/app/config.yaml
+      - DB_PASSWORD=postgres
+      - MYSQL_PASSWORD=root
+    volumes:
+      - ./backend/config.yaml:/app/config.yaml:ro
+    depends_on:
+      postgres-primary:
+        condition: healthy
+      postgres-replica:
+        condition: healthy
+      mysql:
+        condition: healthy
+      redis:
+        condition: healthy
+      mongodb:
+        condition: healthy
+    networks:
+      - udbproxy-network
+    restart: unless-stopped
+
+  # Frontend (React/Vite)
+  frontend:
+    image: node:20-alpine
+    container_name: udbproxy-frontend
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    environment:
+      - VITE_API_URL=http://localhost:8080
+    command: sh -c "npm install && npm run dev -- --host"
+    depends_on:
+      - backend
+    networks:
+      - udbproxy-network
+    restart: unless-stopped
+
+volumes:
+  postgres-primary-data:
+  postgres-replica-data:
+  mysql-data:
+  redis-data:
+  mongodb-data:
+
+networks:
+  udbproxy-network:
+    driver: bridge
