@@ -25,10 +25,11 @@ import {
   BarChart as AnalyticsIcon,
   Search as QueryIcon,
   History as AuditIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
 import { ThemeProvider, useThemeMode } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
-import { WebSocketProvider } from './contexts/WebSocketContext';
+import { WebSocketProvider, useWebSocket } from './contexts/WebSocketContext';
 import { engineApi, databaseApi, statsApi } from './api/udbproxy';
 import QueryInspector from './pages/QueryInspector';
 import AuditLogs from './pages/AuditLogs';
@@ -81,23 +82,23 @@ function Dashboard() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>Dashboard Overview</Typography>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Dashboard Overview</Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
-        <Box sx={{ p: 3, borderRadius: 2, bgcolor: 'primary.main', color: 'white' }}>
-          <Typography variant="body2" sx={{ opacity: 0.8 }}>Total Queries</Typography>
-          <Typography variant="h3">{stats.totalQueries.toLocaleString()}</Typography>
+        <Box sx={{ p: 3, borderRadius: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)' }}>
+          <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Queries</Typography>
+          <Typography variant="h3" sx={{ fontWeight: 700 }}>{stats.totalQueries.toLocaleString()}</Typography>
         </Box>
-        <Box sx={{ p: 3, borderRadius: 2, bgcolor: 'secondary.main', color: 'white' }}>
-          <Typography variant="body2" sx={{ opacity: 0.8 }}>Active Queries</Typography>
-          <Typography variant="h3">{stats.activeQueries}</Typography>
+        <Box sx={{ p: 3, borderRadius: 3, background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white', boxShadow: '0 4px 20px rgba(245, 87, 108, 0.4)' }}>
+          <Typography variant="body2" sx={{ opacity: 0.9 }}>Active Queries</Typography>
+          <Typography variant="h3" sx={{ fontWeight: 700 }}>{stats.activeQueries}</Typography>
         </Box>
-        <Box sx={{ p: 3, borderRadius: 2, bgcolor: 'error.main', color: 'white' }}>
-          <Typography variant="body2" sx={{ opacity: 0.8 }}>Blocked Queries</Typography>
-          <Typography variant="h3">{stats.blockedQueries}</Typography>
+        <Box sx={{ p: 3, borderRadius: 3, background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', color: 'white', boxShadow: '0 4px 20px rgba(254, 225, 64, 0.4)' }}>
+          <Typography variant="body2" sx={{ opacity: 0.9 }}>Blocked Queries</Typography>
+          <Typography variant="h3" sx={{ fontWeight: 700 }}>{stats.blockedQueries}</Typography>
         </Box>
-        <Box sx={{ p: 3, borderRadius: 2, bgcolor: 'success.main', color: 'white' }}>
-          <Typography variant="body2" sx={{ opacity: 0.8 }}>Avg Latency</Typography>
-          <Typography variant="h3">{stats.avgLatency}ms</Typography>
+        <Box sx={{ p: 3, borderRadius: 3, background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', color: 'white', boxShadow: '0 4px 20px rgba(51, 8, 103, 0.4)' }}>
+          <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg Latency</Typography>
+          <Typography variant="h3" sx={{ fontWeight: 700 }}>{stats.avgLatency}ms</Typography>
         </Box>
       </Box>
     </Box>
@@ -209,19 +210,19 @@ function Stats() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>Statistics</Typography>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Statistics</Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 3 }}>
-        <Box sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="h6">P99 Latency</Typography>
-          <Typography variant="h4">{stats?.p99Latency || 0}ms</Typography>
+        <Box sx={{ p: 3, borderRadius: 3, background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', boxShadow: '0 4px 15px rgba(168, 237, 234, 0.3)' }}>
+          <Typography variant="h6" sx={{ color: '#333' }}>P99 Latency</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: '#667eea' }}>{stats?.p99Latency || 0}ms</Typography>
         </Box>
-        <Box sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="h6">Active Connections</Typography>
-          <Typography variant="h4">{stats?.activeConnections || 0}</Typography>
+        <Box sx={{ p: 3, borderRadius: 3, background: 'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)', boxShadow: '0 4px 15px rgba(210, 153, 194, 0.3)' }}>
+          <Typography variant="h6" sx={{ color: '#333' }}>Active Connections</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: '#f5576c' }}>{stats?.activeConnections || 0}</Typography>
         </Box>
-        <Box sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="h6">Pooled Connections</Typography>
-          <Typography variant="h4">{stats?.pooledConnections || 0}</Typography>
+        <Box sx={{ p: 3, borderRadius: 3, background: 'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)', boxShadow: '0 4px 15px rgba(137, 247, 254, 0.3)' }}>
+          <Typography variant="h6" sx={{ color: '#333' }}>Pooled Connections</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: '#66a6ff' }}>{stats?.pooledConnections || 0}</Typography>
         </Box>
       </Box>
     </Box>
@@ -230,15 +231,44 @@ function Stats() {
 
 function AppHeader() {
   const { mode, toggleTheme } = useThemeMode();
+  const { isConnected } = useWebSocket();
+  const { logout, user } = useAuth();
 
   return (
-    <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+    <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)' }}>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+        <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 700, letterSpacing: 1 }}>
           UDBP - Universal Database Proxy
         </Typography>
-        <IconButton color="inherit" onClick={toggleTheme}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 2 }}>
+          <Box
+            sx={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              bgcolor: isConnected ? '#4ade80' : '#f87171',
+              boxShadow: isConnected 
+                ? '0 0 8px rgba(74, 222, 128, 0.8)' 
+                : '0 0 8px rgba(248, 113, 113, 0.8)',
+              animation: isConnected ? 'pulse 2s infinite' : 'none',
+              '@keyframes pulse': {
+                '0%, 100%': { opacity: 1 },
+                '50%': { opacity: 0.6 },
+              },
+            }}
+          />
+          <Typography variant="caption" sx={{ color: 'white', opacity: 0.9 }}>
+            {isConnected ? 'Live' : 'Offline'}
+          </Typography>
+        </Box>
+        <Typography variant="caption" sx={{ color: 'white', opacity: 0.8, mr: 2 }}>
+          {user?.username}
+        </Typography>
+        <IconButton color="inherit" onClick={toggleTheme} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }}>
           {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+        </IconButton>
+        <IconButton color="inherit" onClick={logout} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }} title="Logout">
+          <LogoutIcon />
         </IconButton>
       </Toolbar>
     </AppBar>
@@ -260,47 +290,51 @@ function AppLayout() {
           '& .MuiDrawer-paper': {
             width: drawerWidth,
             boxSizing: 'border-box',
-            bgcolor: mode === 'dark' ? '#1e1e1e' : '#ffffff',
+            background: mode === 'dark' 
+              ? 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)' 
+              : 'linear-gradient(180deg, #ffffff 0%, #f8f9ff 100%)',
+            borderRight: '1px solid',
+            borderColor: mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
           },
         }}
       >
         <Toolbar />
-        <Box sx={{ overflow: 'auto' }}>
+        <Box sx={{ overflow: 'auto', py: 2 }}>
           <List>
-            <ListItem button component={Link} to="/">
-              <ListItemIcon><DashboardIcon /></ListItemIcon>
-              <ListItemText primary="Dashboard" />
-            </ListItem>
-            <ListItem button component={Link} to="/engines">
-              <ListItemIcon><EnginesIcon /></ListItemIcon>
-              <ListItemText primary="Smart Engines" />
-            </ListItem>
-            <ListItem button component={Link} to="/databases">
-              <ListItemIcon><DatabaseIcon /></ListItemIcon>
-              <ListItemText primary="Databases" />
-            </ListItem>
-            <ListItem button component={Link} to="/analytics">
-              <ListItemIcon><AnalyticsIcon /></ListItemIcon>
-              <ListItemText primary="Analytics" />
-            </ListItem>
-            <ListItem button component={Link} to="/query-inspector">
-              <ListItemIcon><QueryIcon /></ListItemIcon>
-              <ListItemText primary="Query Inspector" />
-            </ListItem>
-            <ListItem button component={Link} to="/audit-logs">
-              <ListItemIcon><AuditIcon /></ListItemIcon>
-              <ListItemText primary="Audit Logs" />
-            </ListItem>
-            <ListItem button component={Link} to="/config">
-              <ListItemIcon><SettingsIcon /></ListItemIcon>
-              <ListItemText primary="Configuration" />
-            </ListItem>
+            {[
+              { to: '/', icon: <DashboardIcon />, label: 'Dashboard' },
+              { to: '/engines', icon: <EnginesIcon />, label: 'Smart Engines' },
+              { to: '/databases', icon: <DatabaseIcon />, label: 'Databases' },
+              { to: '/analytics', icon: <AnalyticsIcon />, label: 'Analytics' },
+              { to: '/query-inspector', icon: <QueryIcon />, label: 'Query Inspector' },
+              { to: '/audit-logs', icon: <AuditIcon />, label: 'Audit Logs' },
+              { to: '/config', icon: <SettingsIcon />, label: 'Configuration' },
+            ].map((item) => (
+              <ListItem 
+                button 
+                component={Link} 
+                to={item.to}
+                key={item.to}
+                sx={{ 
+                  mx: 1, 
+                  borderRadius: 2,
+                  mb: 0.5,
+                  '&:hover': { 
+                    background: 'linear-gradient(90deg, rgba(102,126,234,0.15) 0%, rgba(118,75,162,0.15) 100%)',
+                  }
+                }}
+              >
+                <ListItemIcon sx={{ color: '#667eea', minWidth: 40 }}>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.label} sx={{ '& .MuiTypography-root': { fontWeight: 500 } }} />
+              </ListItem>
+            ))}
           </List>
         </Box>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3, minHeight: '100vh', bgcolor: 'background.default' }}>
         <Toolbar />
         <Routes>
+          <Route path="/login" element={<Login />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/engines" element={<Engines />} />
           <Route path="/databases" element={<Databases />} />
@@ -315,15 +349,21 @@ function AppLayout() {
   );
 }
 
+import Login from './pages/Login';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { useAuth } from './contexts/AuthContext';
+
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <WebSocketProvider>
-          <BrowserRouter>
-            <AppLayout />
-          </BrowserRouter>
-        </WebSocketProvider>
+        <NotificationProvider>
+          <WebSocketProvider>
+            <BrowserRouter>
+              <AppLayout />
+            </BrowserRouter>
+          </WebSocketProvider>
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );

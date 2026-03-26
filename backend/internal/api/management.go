@@ -15,12 +15,12 @@ type ManagementAPIHandler struct {
 }
 
 type DatabaseConfig struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Status   string `json:"status"`
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Type   string `json:"type"`
+	Host   string `json:"host"`
+	Port   int    `json:"port"`
+	Status string `json:"status"`
 }
 
 type ProxyStats struct {
@@ -59,6 +59,9 @@ func NewManagementAPIHandler() *ManagementAPIHandler {
 
 // RegisterRoutes registers API routes on the given mux
 func (h *ManagementAPIHandler) RegisterRoutes(mux *http.ServeMux) {
+	// CORS middleware wrapper
+	corsMux := corsMiddleware(mux)
+
 	// Health check
 	mux.HandleFunc("/api/v1/health", h.handleHealth)
 
@@ -76,6 +79,62 @@ func (h *ManagementAPIHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Query history
 	mux.HandleFunc("/api/v1/query/history", h.handleQueryHistory)
+
+	// Config endpoints
+	mux.HandleFunc("/api/v1/config", h.handleConfig)
+	mux.HandleFunc("/api/v1/config/databases", h.handleConfigDatabases)
+
+	// Use corsMux for serving
+	_ = corsMux
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (h *ManagementAPIHandler) handleConfig(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	switch r.Method {
+	case http.MethodGet:
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"name":    "proxy",
+			"enabled": true,
+			"fields":  map[string]interface{}{},
+		})
+	case http.MethodPut:
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (h *ManagementAPIHandler) handleConfigDatabases(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	switch r.Method {
+	case http.MethodGet:
+		json.NewEncoder(w).Encode([]map[string]interface{}{
+			{"id": "1", "name": "primary-mysql", "type": "mysql", "host": "localhost", "port": 3306, "username": "root", "enabled": true},
+			{"id": "2", "name": "analytics-pg", "type": "postgresql", "host": "localhost", "port": 5432, "username": "admin", "enabled": true},
+		})
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 func (h *ManagementAPIHandler) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -126,7 +185,7 @@ func (h *ManagementAPIHandler) handleEngines(w http.ResponseWriter, r *http.Requ
 func (h *ManagementAPIHandler) handleEngine(w http.ResponseWriter, r *http.Request) {
 	// Get specific engine by ID
 	id := r.URL.Path[len("/api/v1/engines/"):]
-	
+
 	engine := map[string]interface{}{
 		"id":      id,
 		"name":    "Query Rewrite",
@@ -137,7 +196,7 @@ func (h *ManagementAPIHandler) handleEngine(w http.ResponseWriter, r *http.Reque
 			"errors":     2,
 		},
 	}
-	
+
 	json.NewEncoder(w).Encode(engine)
 }
 

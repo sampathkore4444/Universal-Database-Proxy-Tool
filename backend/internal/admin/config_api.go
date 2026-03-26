@@ -33,6 +33,25 @@ func (api *ConfigAPI) registerRoutes() {
 	api.mux.HandleFunc("/config/reload", api.handleReload)
 }
 
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (api *ConfigAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	corsMiddleware(api.mux).ServeHTTP(w, r)
+}
+
 func (api *ConfigAPI) handleConfig(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -108,10 +127,6 @@ func (api *ConfigAPI) handleReload(w http.ResponseWriter, r *http.Request) {
 	})
 
 	json.NewEncoder(w).Encode(map[string]string{"status": "reload_triggered"})
-}
-
-func (api *ConfigAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	api.mux.ServeHTTP(w, r)
 }
 
 func (api *ConfigAPI) UpdateConfig(newCfg *config.Config) {

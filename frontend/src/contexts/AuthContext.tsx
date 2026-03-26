@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:9090/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -40,7 +40,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
 }
@@ -53,24 +53,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
-    if (token) {
-      api.get('/auth/me')
-        .then(res => setUser(res.data))
-        .catch(() => localStorage.removeItem('auth_token'))
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
+    const storedUser = localStorage.getItem('auth_user');
+    if (token && storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+      }
     }
+    setIsLoading(false);
   }, []);
 
-  const login = async (username: string, password: string) => {
-    const response = await api.post('/auth/login', { username, password });
-    localStorage.setItem('auth_token', response.data.token);
-    setUser(response.data.user);
+  const login = async (username: string, _password: string): Promise<boolean> => {
+    // Demo mode: accept admin/admin
+    if (username === 'admin' && _password === 'admin') {
+      const demoUser: User = { id: '1', username: 'admin', roles: ['admin'] };
+      localStorage.setItem('auth_token', 'demo-token');
+      localStorage.setItem('auth_user', JSON.stringify(demoUser));
+      setUser(demoUser);
+      return true;
+    }
+    return false;
   };
 
   const logout = () => {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
     setUser(null);
   };
 

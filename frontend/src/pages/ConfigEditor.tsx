@@ -142,7 +142,7 @@ function ConfigEditor() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>Configuration Editor</Typography>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Configuration Editor</Typography>
       
       {message && (
         <Alert severity={message.type} sx={{ mb: 2 }} onClose={() => setMessage(null)}>

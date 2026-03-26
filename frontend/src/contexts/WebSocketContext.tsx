@@ -16,7 +16,7 @@ interface WebSocketContextType {
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:9090/ws';
 
 export const WebSocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -26,29 +26,56 @@ export const WebSocketProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [subscriptions, setSubscriptions] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const ws = new WebSocket(WS_URL);
+    let ws: WebSocket | null = null;
+    let isMounted = true;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    ws.onopen = () => {
-      setIsConnected(true);
-      subscriptions.forEach(sub => ws.send(JSON.stringify({ action: 'subscribe', type: sub })));
-    };
-
-    ws.onmessage = (event) => {
+    const connectWS = () => {
       try {
-        const message: WebSocketMessage = JSON.parse(event.data);
-        setLastMessage(message);
-        setMessages(prev => [...prev.slice(-99), message]);
+        ws = new WebSocket(WS_URL);
+
+        ws.onopen = () => {
+          if (!isMounted) {
+            ws?.close();
+            return;
+          }
+          setIsConnected(true);
+        };
+
+        ws.onmessage = (event) => {
+          if (!isMounted) return;
+          try {
+            const message: WebSocketMessage = JSON.parse(event.data);
+            setLastMessage(message);
+            setMessages(prev => [...prev.slice(-99), message]);
+          } catch (e) {
+            console.error('WS parse error:', e);
+          }
+        };
+
+        ws.onclose = () => {
+          if (!isMounted) return;
+          setIsConnected(false);
+          reconnectTimeout = setTimeout(() => {
+            if (isMounted) connectWS();
+          }, 5000);
+        };
+
+        ws.onerror = () => {
+          // Silently fail - WebSocket is optional
+        };
       } catch (e) {
-        console.error('WS parse error:', e);
+        // Silently fail if WebSocket is not available
       }
     };
 
-    ws.onclose = () => setIsConnected(false);
-    ws.onerror = (err) => console.error('WS error:', err);
+    connectWS();
 
-    setSocket(ws);
-
-    return () => ws.close();
+    return () => {
+      isMounted = false;
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      ws?.close();
+    };
   }, []);
 
   useEffect(() => {

@@ -499,13 +499,31 @@ export const statsApi = {
 - PostgreSQL, MySQL, MongoDB (as backend databases)
 - Redis (for caching)
 
-### Starting the Backend Server
+---
 
-#### Method 1: Using the CLI
+### Starting the Backend Server (Without Docker)
+
+#### Method 1: Using `go run` (Recommended for Development)
 
 ```bash
-# Navigate to the project directory
-cd Python/Opencode/Database Proxy Tool
+# Navigate to the backend directory
+cd Python/Opencode/Database\ Proxy\ Tool/backend
+
+# Run the server directly with go run
+go run ./cmd/udbproxy/main.go serve
+
+# Or with custom config
+go run ./cmd/udbproxy/main.go serve --config /path/to/config.yaml
+
+# Or with debug logging
+go run ./cmd/udbproxy/main.go serve --debug
+```
+
+#### Method 2: Build and Run
+
+```bash
+# Navigate to the backend directory
+cd Python/Opencode/Database\ Proxy\ Tool/backend
 
 # Build the application
 go build -o udbproxy ./cmd/udbproxy
@@ -520,9 +538,12 @@ go build -o udbproxy ./cmd/udbproxy
 ./udbproxy serve --debug
 ```
 
-#### Method 2: Using Docker
+#### Method 3: Using Docker (Single Container)
 
 ```bash
+# Navigate to the backend directory
+cd Python/Opencode/Database\ Proxy\ Tool/backend
+
 # Build the Docker image
 docker build -t udbproxy:latest .
 
@@ -537,7 +558,7 @@ docker run -d \
   udbproxy:latest
 ```
 
-#### Method 3: Using Kubernetes
+#### Method 4: Using Kubernetes
 
 ```bash
 # Apply the deployment
@@ -571,7 +592,7 @@ Docker Compose provides the easiest way to start all services together:
 
 ```bash
 # Navigate to project directory
-cd Python/Opencode/Database Proxy Tool
+cd Python/Opencode/Database\ Proxy\ Tool
 
 # Start all services (databases + backend + frontend)
 docker-compose up -d
@@ -837,3 +858,4 @@ The Universal Database Proxy provides a comprehensive solution for database mana
 5. **Production Ready**: Connection pooling, failover, rate limiting, and audit logging
 
 For more details, refer to the main [Database_proxy.md](./Database_proxy.md) file.
+

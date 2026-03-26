@@ -98,7 +98,7 @@ function Analytics() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Analytics & Charts</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 700, background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Analytics & Charts</Typography>
         <FormControl size="small" sx={{ minWidth: 120 }}>
           <InputLabel>Time Range</InputLabel>
           <Select
@@ -115,26 +115,26 @@ function Analytics() {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card sx={{ borderRadius: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)' }}>
             <CardContent>
-              <Typography variant="h6" color="primary">Total Queries</Typography>
-              <Typography variant="h3">{totalQueries.toLocaleString()}</Typography>
+              <Typography variant="h6" sx={{ opacity: 0.9 }}>Total Queries</Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700 }}>{totalQueries.toLocaleString()}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card sx={{ borderRadius: 3, background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white', boxShadow: '0 8px 32px rgba(245, 87, 108, 0.3)' }}>
             <CardContent>
-              <Typography variant="h6" color="secondary">Avg Latency</Typography>
-              <Typography variant="h3">{avgLatency}ms</Typography>
+              <Typography variant="h6" sx={{ opacity: 0.9 }}>Avg Latency</Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700 }}>{avgLatency}ms</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card sx={{ borderRadius: 3, background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', color: 'white', boxShadow: '0 8px 32px rgba(254, 225, 64, 0.3)' }}>
             <CardContent>
-              <Typography variant="h6" color="error">Error Rate</Typography>
-              <Typography variant="h3">{totalErrors}</Typography>
+              <Typography variant="h6" sx={{ opacity: 0.9 }}>Error Rate</Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700 }}>{totalErrors}</Typography>
             </CardContent>
           </Card>
         </Grid>
