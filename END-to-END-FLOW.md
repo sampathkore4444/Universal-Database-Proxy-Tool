@@ -565,6 +565,63 @@ npm run dev
 # The frontend will be available at http://localhost:5173
 ```
 
+### Starting with Docker Compose (Recommended)
+
+Docker Compose provides the easiest way to start all services together:
+
+```bash
+# Navigate to project directory
+cd Python/Opencode/Database Proxy Tool
+
+# Start all services (databases + backend + frontend)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Check service status
+docker-compose ps
+```
+
+#### Services Started with Docker Compose:
+
+| Service | Port | Description |
+|---------|------|-------------|
+| PostgreSQL Primary | 5432 | Main PostgreSQL database |
+| PostgreSQL Replica | 5433 | Read replica for load balancing |
+| MySQL | 3306 | MySQL database |
+| Redis | 6379 | Cache layer |
+| MongoDB | 27017 | Document database |
+| Backend (UDBP) | 5432, 8080, 9090 | Go proxy server |
+| Frontend | 5173 | React dev server |
+
+#### Useful Docker Compose Commands:
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (data will be lost)
+docker-compose down -v
+
+# Rebuild services (after code changes)
+docker-compose up -d --build
+
+# View logs for specific service
+docker-compose logs -f backend
+docker-compose logs -f postgres-primary
+
+# Restart specific service
+docker-compose restart backend
+
+# Access container shell
+docker-compose exec backend sh
+docker-compose exec postgres-primary psql -U postgres
+```
+
 ### Building for Production
 
 ```bash
@@ -577,7 +634,20 @@ npm run build
 
 ### Stopping the Servers
 
-#### Stopping the Backend
+#### Stopping Docker Compose (Recommended)
+
+```bash
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
+
+# Stop specific service
+docker-compose stop backend
+```
+
+#### Stopping the Backend (Without Docker)
 
 ```bash
 # If running in foreground (Ctrl+C)
@@ -586,14 +656,14 @@ npm run build
 # If running as a process
 pkill udbproxy
 
-# If running in Docker
+# If running in single Docker container
 docker stop udbproxy
 
 # If running in Kubernetes
 kubectl delete deployment udbproxy
 ```
 
-#### Stopping the Frontend
+#### Stopping the Frontend (Without Docker)
 
 ```bash
 # If running in development (Ctrl+C)

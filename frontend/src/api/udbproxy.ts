@@ -143,4 +143,76 @@ export const healthApi = {
   },
 };
 
+// Config API
+export interface ConfigSection {
+  name: string;
+  enabled: boolean;
+  fields: Record<string, string | number | boolean>;
+}
+
+export interface DatabaseConfig {
+  id: string;
+  name: string;
+  type: string;
+  host: string;
+  port: number;
+  username: string;
+  enabled: boolean;
+}
+
+export const configApi = {
+  get: async (): Promise<ConfigSection> => {
+    const response = await api.get('/config');
+    return response.data;
+  },
+
+  update: async (config: ConfigSection): Promise<void> => {
+    await api.put('/config', config);
+  },
+
+  getDatabases: async (): Promise<DatabaseConfig[]> => {
+    const response = await api.get('/config/databases');
+    return response.data;
+  },
+
+  saveDatabases: async (databases: DatabaseConfig[]): Promise<void> => {
+    await api.put('/config/databases', databases);
+  },
+};
+
+// Query Inspector API
+export const queryInspectorApi = {
+  query: async (sql: string): Promise<{ results: any[]; columns: string[] }> => {
+    const response = await api.post('/query/inspect', { sql });
+    return response.data;
+  },
+
+  explain: async (sql: string): Promise<{ plan: any }> => {
+    const response = await api.post('/query/explain', { sql });
+    return response.data;
+  },
+};
+
+// Audit Logs API
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  user: string;
+  action: string;
+  resource: string;
+  status: 'success' | 'failure';
+  details?: string;
+}
+
+export const auditApi = {
+  list: async (filters?: { startDate?: string; endDate?: string; user?: string }): Promise<AuditLog[]> => {
+    const params = new URLSearchParams();
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
+    if (filters?.user) params.append('user', filters.user);
+    const response = await api.get(`/audit/logs?${params.toString()}`);
+    return response.data;
+  },
+};
+
 export default api;
